@@ -19,7 +19,7 @@ describe("apis", () => {
                 "upstream_url": "bar"
             }
         }])
-        .map(x => x({hasApi: () => false}));
+        .map(x => x({hasApi: () => false, getVersion: () => '0.10.0'}));
 
         expect(actual).to.be.eql([
             createApi('leads', {upstream_url: "bar"})
@@ -34,7 +34,7 @@ describe("apis", () => {
                 "upstream_url": "bar"
             }
         }])
-        .map(x => x({hasApi: () => true}));
+        .map(x => x({hasApi: () => true, getVersion: () => '0.10.0'}));
 
         expect(actual).to.be.eql([
             removeApi('leads')
@@ -42,17 +42,18 @@ describe("apis", () => {
     });
 
     it("should do no op if api is already removed", () => {
-        var actual = apis([{
+        const api = {
             "name": "leads",
             "ensure": "removed",
             "attributes": {
                 "upstream_url": "bar"
             }
-        }])
-        .map(x => x({hasApi: () => false}));
+        };
+        var actual = apis([api])
+        .map(x => x({hasApi: () => false, getVersion: () => '0.10.0'}));
 
         expect(actual).to.be.eql([
-            noop()
+            noop({ type: 'noop-api', api })
         ]);
     });
 
@@ -64,7 +65,7 @@ describe("apis", () => {
                 "upstream_url": "bar"
             }
         }])
-        .map(x => x({hasApi: () => true, isApiUpToDate: () => false}));
+        .map(x => x({hasApi: () => true, isApiUpToDate: () => false, getVersion: () => '0.10.0'}));
 
         expect(actual).to.be.eql([
             updateApi('leads', {upstream_url: "bar"})
@@ -95,11 +96,13 @@ describe("apis", () => {
         }]).map(x => x({
             hasApi: () => false,
             hasPlugin: () => false,
+            getApiId: () => 'abcd-1234',
+            getVersion: () => '0.10.0'
         }));
 
         expect(actual).to.be.eql([
             createApi('leads', {upstream_url: "bar"}),
-            addApiPlugin('leads', 'cors', {'config.foo': "bar"})
+            addApiPlugin('abcd-1234', 'cors', {'config.foo': "bar"})
         ]);
     });
 
@@ -111,10 +114,10 @@ describe("apis", () => {
                     'attributes': {
                         "config.foo": 'bar'
                     }}]
-            ).map(x => x({hasPlugin: () => false}));
+            ).map(x => x({hasPlugin: () => false, getApiId: () => 'abcd-1234'}));
 
             expect(actual).to.be.eql([
-                addApiPlugin('leads', 'cors', {"config.foo": 'bar'})
+                addApiPlugin('abcd-1234', 'cors', {"config.foo": 'bar'})
             ]);
         });
 
@@ -125,11 +128,12 @@ describe("apis", () => {
                     "ensure": "removed"}]
             ).map(x => x({
                 hasPlugin: () => true,
-                getPluginId: () => 123
+                getPluginId: () => 123,
+                getApiId: () => 'abcd-1234',
             }));
 
             expect(actual).to.be.eql([
-                removeApiPlugin('leads', 123)
+                removeApiPlugin('abcd-1234', 123)
             ]);
         });
 
@@ -143,11 +147,12 @@ describe("apis", () => {
             ).map(x => x({
                 hasPlugin: () => true,
                 getPluginId: () => 123,
+                getApiId: () => 'abcd-1234',
                 isApiPluginUpToDate: () => false
             }));
 
             expect(actual).to.be.eql([
-                updateApiPlugin('leads', 123, {'config.foo': 'bar'})
+                updateApiPlugin('abcd-1234', 123, {'config.foo': 'bar'})
             ])
         });
 

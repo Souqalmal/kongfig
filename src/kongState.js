@@ -1,9 +1,35 @@
-import {getSupportedCredentials} from './core'
+import semVer from 'semver';
+import {getSupportedCredentials} from './consumerCredentials'
 
-export default async ({fetchApis, fetchPlugins, fetchConsumers, fetchConsumerCredentials, fetchConsumerAcls}) => {
+const fetchUpstreamsWithTargets = async ({ version, fetchUpstreams, fetchTargets }) => {
+    if (semVer.lte(version, '0.10.0')) {
+        return Promise.resolve([]);
+    }
+
+    const upstreams = await fetchUpstreams();
+
+    return await Promise.all(
+        upstreams.map(async item => {
+            const targets = await fetchTargets(item.id);
+
+            return { ...item, targets };
+        })
+    );
+};
+
+const fetchCertificatesForVersion = async ({ version, fetchCertificates }) => {
+    if (semVer.lte(version, '0.10.0')) {
+        return Promise.resolve([]);
+    }
+
+    return await fetchCertificates();
+};
+
+export default async ({fetchApis, fetchPlugins, fetchGlobalPlugins, fetchConsumers, fetchConsumerCredentials, fetchConsumerAcls, fetchUpstreams, fetchTargets, fetchTargetsV11Active, fetchCertificates, fetchKongVersion}) => {
+    const version = await fetchKongVersion();
     const apis = await fetchApis();
     const apisWithPlugins = await Promise.all(apis.map(async item => {
-        const plugins =  await fetchPlugins(item.name);
+        const plugins =  await fetchPlugins(item.id);
 
         return {...item, plugins};
     }));
@@ -17,11 +43,11 @@ export default async ({fetchApis, fetchPlugins, fetchConsumers, fetchConsumerCre
         }
 
         const allCredentials = Promise.all(getSupportedCredentials().map(name => {
-            return fetchConsumerCredentials(consumer.username, name)
+            return fetchConsumerCredentials(consumer.id, name)
                 .then(credentials => [name, credentials]);
         }));
 
-        var aclsFetched = await fetchConsumerAcls(consumer.username);
+        var aclsFetched = await fetchConsumerAcls(consumer.id);
 
         var consumerWithCredentials = allCredentials
             .then(result => {
@@ -39,8 +65,20 @@ export default async ({fetchApis, fetchPlugins, fetchConsumers, fetchConsumerCre
 
     }));
 
+    const allPlugins = await fetchGlobalPlugins();
+    const globalPlugins = allPlugins.filter(plugin => {
+        return plugin.api_id === undefined;
+    });
+
+    const upstreamsWithTargets = await fetchUpstreamsWithTargets({ version, fetchUpstreams, fetchTargets: semVer.gte(version, '0.12.0') ? fetchTargets : fetchTargetsV11Active });
+    const certificates = await fetchCertificatesForVersion({ version, fetchCertificates });
+
     return {
         apis: apisWithPlugins,
-        consumers: consumersWithCredentialsAndAcls
+        consumers: consumersWithCredentialsAndAcls,
+        plugins: globalPlugins,
+        upstreams: upstreamsWithTargets,
+        certificates,
+        version,
     };
 };

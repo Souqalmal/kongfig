@@ -1,11 +1,19 @@
 import assign from 'object-assign';
+import invariant from 'invariant';
 
-export function noop() {
-    return {noop: true};
+export function noop({ type, ...rest} = {}) {
+    invariant(type, 'No-op must have a type');
+
+    return {
+        type,
+        noop: true,
+        ...rest,
+    };
 }
 
 export function createApi(name, params) {
     return {
+        type: 'create-api',
         endpoint: {name: 'apis'},
         method: 'POST',
         body: assign({}, params, {name})
@@ -14,6 +22,7 @@ export function createApi(name, params) {
 
 export function removeApi(name) {
     return {
+        type: 'remove-api',
         endpoint: {name: 'api', params: {name}},
         method: 'DELETE',
     };
@@ -21,76 +30,121 @@ export function removeApi(name) {
 
 export function updateApi(name, params) {
     return {
+        type: 'update-api',
         endpoint: {name: 'api', params: {name}},
         method: 'PATCH',
         body: params
     };
 }
 
-export function addApiPlugin(apiName, pluginName, params) {
+export function addApiPlugin(apiId, pluginName, params) {
     return {
-        endpoint: {name: 'api-plugins', params: {apiName, pluginName}},
+        type: 'add-api-plugin',
+        endpoint: {name: 'api-plugins', params: {apiId, pluginName}},
         method: 'POST',
         body: assign({}, params, {name: pluginName})
     };
 }
 
-export function removeApiPlugin(apiName, pluginId) {
+export function removeApiPlugin(apiId, pluginId) {
     return {
-        endpoint: {name: 'api-plugin', params: {apiName, pluginId}},
+        type: 'remove-api-plugin',
+        endpoint: {name: 'api-plugin', params: {apiId, pluginId}},
         method: 'DELETE',
     };
 }
 
-export function updateApiPlugin(apiName, pluginId, params) {
+export function updateApiPlugin(apiId, pluginId, params) {
     return {
-        endpoint: {name: 'api-plugin', params: {apiName, pluginId}},
+        type: 'update-api-plugin',
+        endpoint: {name: 'api-plugin', params: {apiId, pluginId}},
         method: 'PATCH',
         body: params
     };
 }
 
-export function createConsumer(username) {
-        return {
+export function addGlobalPlugin(pluginName, params) {
+    return {
+        type: 'add-global-plugin',
+        endpoint: {name: 'plugins', params: {pluginName}},
+        method: 'POST',
+        body: assign({}, params, {name: pluginName})
+    };
+}
+
+export function removeGlobalPlugin(pluginId) {
+    return {
+        type: 'remove-global-plugin',
+        endpoint: {name: 'plugin', params: {pluginId}},
+        method: 'DELETE',
+    };
+}
+
+export function updateGlobalPlugin(pluginId, params) {
+    return {
+        type: 'update-global-plugin',
+        endpoint: {name: 'plugin', params: {pluginId}},
+        method: 'PATCH',
+        body: params
+    };
+}
+
+export function createConsumer(username, custom_id) {
+    return {
+        type: 'create-customer',
         endpoint: { name: 'consumers' },
         method: 'POST',
-        body: { username }
+        body: { username, custom_id }
     };
 }
 
-export function removeConsumer(username) {
+export function updateConsumer(consumerId, params) {
     return {
-        endpoint: {name: 'consumer', params: {username}},
-        method: 'DELETE'
-    };
-}
-
-export function addConsumerCredentials(username, plugin, params) {
-    return {
-        endpoint: {name: 'consumer-credentials', params: {username, plugin}},
-        method: 'POST',
-        body: params
-    };
-}
-
-export function updateConsumerCredentials(username, plugin, credentialId, params) {
-    return {
-        endpoint: {name: 'consumer-credential', params: {username, plugin, credentialId}},
+        type: 'update-customer',
+        endpoint: {name: 'consumer', params: {consumerId}},
         method: 'PATCH',
         body: params
     };
 }
 
-export function removeConsumerCredentials(username, plugin, credentialId) {
+export function removeConsumer(consumerId) {
     return {
-        endpoint: {name: 'consumer-credential', params: {username, plugin, credentialId}},
+        type: 'remove-customer',
+        endpoint: {name: 'consumer', params: {consumerId}},
         method: 'DELETE'
     };
 }
 
-export function addConsumerAcls(username, groupName) {
+export function addConsumerCredentials(consumerId, plugin, params) {
     return {
-        endpoint: {name: 'consumer-acls', params: {username}},
+        type: 'add-customer-credential',
+        endpoint: {name: 'consumer-credentials', params: {consumerId, plugin}},
+        method: 'POST',
+        body: params
+    };
+}
+
+export function updateConsumerCredentials(consumerId, plugin, credentialId, params) {
+    return {
+        type: 'update-customer-credential',
+        endpoint: {name: 'consumer-credential', params: {consumerId, plugin, credentialId}},
+        method: 'PATCH',
+        body: params
+    };
+}
+
+export function removeConsumerCredentials(consumerId, plugin, credentialId) {
+    return {
+        type: 'remove-customer-credential',
+        endpoint: {name: 'consumer-credential', params: {consumerId, plugin, credentialId}},
+        method: 'DELETE'
+    };
+}
+
+export function addConsumerAcls(consumerId, groupName) {
+    return {
+        type: 'add-customer-acls',
+        endpoint: {name: 'consumer-acls', params: {consumerId}},
         method: 'POST',
         body: {
             group: groupName
@@ -98,9 +152,10 @@ export function addConsumerAcls(username, groupName) {
     };
 }
 
-export function removeConsumerAcls(username, aclId) {
+export function removeConsumerAcls(consumerId, aclId) {
     return {
-        endpoint: {name: 'consumer-acl', params: {username, aclId}},
+        type: 'remove-customer-acls',
+        endpoint: {name: 'consumer-acl', params: {consumerId, aclId}},
         method: 'DELETE'
     };
 }
